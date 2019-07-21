@@ -378,7 +378,7 @@ public abstract class RepositoryTestCase extends LocalDiskRepositoryTestCase {
 			tmp = File.createTempFile("fsTickTmpFile", null,
 					lastFile.getParentFile());
 		}
-		long res = FS.getFileStoreAttributes(tmp.toPath(), true)
+		long res = FS.getFileStoreAttributes(tmp.toPath())
 				.getFsTimestampResolution().toNanos();
 		long sleepTime = res / 10;
 		try {

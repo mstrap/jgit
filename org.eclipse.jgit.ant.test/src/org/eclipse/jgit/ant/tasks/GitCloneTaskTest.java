@@ -66,7 +66,7 @@ public class GitCloneTaskTest extends LocalDiskRepositoryTestCase {
 	@Before
 	public void before() throws IOException {
 		dest = createTempFile();
-		FS.getFileStoreAttributes(dest.toPath().getParent(), true);
+		FS.getFileStoreAttributes(dest.toPath().getParent());
 		project = new Project();
 		project.init();
 		enableLogging();

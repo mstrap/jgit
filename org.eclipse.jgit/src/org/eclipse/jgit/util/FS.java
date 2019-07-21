@@ -244,20 +244,15 @@ public abstract class FS {
 		 *
 		 * @param path
 		 *            file residing in the FileStore to get attributes for
-		 * @param useConfig
-		 *            if {@code true} then use the user global git config to
-		 *            persist and read FileStore attributes
 		 * @return FileStoreAttributes for the given path.
 		 */
-		public static FileStoreAttributes get(Path path,
-				boolean useConfig) {
+		public static FileStoreAttributes get(Path path) {
 			path = path.toAbsolutePath();
 			Path dir = Files.isDirectory(path) ? path : path.getParent();
-			return getFileStoreAttributes(dir, useConfig);
+			return getFileStoreAttributes(dir);
 		}
 
-		private static FileStoreAttributes getFileStoreAttributes(Path dir,
-				boolean useConfig) {
+		private static FileStoreAttributes getFileStoreAttributes(Path dir) {
 			FileStore s;
 			try {
 				if (Files.exists(dir)) {
@@ -280,6 +275,7 @@ public abstract class FS {
 							Thread.currentThread(), dir);
 					return FALLBACK_FILESTORE_ATTRIBUTES;
 				}
+
 				CompletableFuture<Optional<FileStoreAttributes>> f = CompletableFuture
 						.supplyAsync(() -> {
 							Lock lock = locks.computeIfAbsent(s,
@@ -301,9 +297,7 @@ public abstract class FS {
 								if (c != null) {
 									return Optional.of(c);
 								}
-								if (useConfig) {
-									cache = readFromConfig(s);
-								}
+								cache = readFromConfig(s);
 								if (cache.isPresent()) {
 									return cache;
 								}
@@ -324,10 +318,7 @@ public abstract class FS {
 									if (LOG.isDebugEnabled()) {
 										LOG.debug(c.toString());
 									}
-									if (useConfig) {
-										saveToConfig(s, c);
-									}
-									cache = Optional.of(c);
+									saveToConfig(s, c);
 								}
 								cache = Optional.of(c);
 							} finally {
@@ -697,15 +688,12 @@ public abstract class FS {
 	 * @param dir
 	 *            the directory under which the probe file will be created to
 	 *            measure the timer resolution.
-	 * @param useConfig
-	 *            if {@code true} then use the user global git config to persist
-	 *            and read FileStore attributes
 	 * @return measured filesystem timestamp resolution
 	 * @since 5.1.9
 	 */
 	public static FileStoreAttributes getFileStoreAttributes(
-			@NonNull Path dir, boolean useConfig) {
-		return FileStoreAttributes.get(dir, useConfig);
+			@NonNull Path dir) {
+		return FileStoreAttributes.get(dir);
 	}
 
 	private volatile Holder<File> userHome;

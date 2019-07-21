@@ -87,7 +87,7 @@ public class FileSnapshotTest {
 		// measure timer resolution before the test to avoid time critical tests
 		// are affected by time needed for measurement
 		fsAttrCache = FS
-				.getFileStoreAttributes(trash.getParent(), true);
+				.getFileStoreAttributes(trash.getParent());
 	}
 
 	@Before

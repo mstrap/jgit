@@ -123,7 +123,7 @@ public abstract class LfsServerTest {
 
 		// measure timer resolution before the test to avoid time critical tests
 		// are affected by time needed for measurement
-		FS.getFileStoreAttributes(tmp.getParent(), true);
+		FS.getFileStoreAttributes(tmp.getParent());
 
 		server = new AppServer();
 		ServletContextHandler app = server.addContext("/lfs");

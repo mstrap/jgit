@@ -43,6 +43,8 @@
 
 package org.eclipse.jgit.internal.storage.file;
 
+import static org.eclipse.jgit.util.FS.FileStoreAttributes.FALLBACK_FILESTORE_ATTRIBUTES;
+
 import java.io.File;
 import java.io.IOException;
 import java.nio.file.attribute.BasicFileAttributes;
@@ -251,8 +253,9 @@ public class FileSnapshot {
 	protected FileSnapshot(File file, boolean useConfig) {
 		this.file = file;
 		this.lastRead = Instant.now();
-		this.fileStoreAttributeCache = FS.getFileStoreAttributes(
-				file.toPath().getParent(), useConfig);
+		this.fileStoreAttributeCache = useConfig
+				? FS.getFileStoreAttributes(file.toPath().getParent())
+				: FALLBACK_FILESTORE_ATTRIBUTES;
 		BasicFileAttributes fileAttributes = null;
 		try {
 			fileAttributes = FS.DETECTED.fileAttributes(file);
