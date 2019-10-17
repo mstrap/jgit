@@ -505,6 +505,20 @@ public class DirCacheTree {
 			removeChild(childCnt - 1);
 	}
 
+	/**
+	 * CGit performs modifications to the cache tree e.g. when adding or
+	 * removing files; JGit is more limited here and will usually dispose trees
+	 * completely on such changes; still, to test the various code paths of
+	 * validate(), we have to force invalidation at least from tests.
+	 */
+	void invalidateAll() {
+		entrySpan = -1;
+		id = null;
+		for (int index = 0; index < childCnt; index++) {
+			children[index].invalidateAll();
+		}
+	}
+
 	private void insertChild(int stIdx, DirCacheTree st) {
 		final DirCacheTree[] c = children;
 		if (childCnt + 1 <= c.length) {

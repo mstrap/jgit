@@ -141,6 +141,145 @@ public class DirCacheTreeTest extends RepositoryTestCase {
 		assertData(acTree, "c", "a/c/", 0, acLast - acFirst + 1, false);
 	}
 
+	@Test
+	public void testAddSubtreeAtStart() {
+		DirCacheEntry[] ents = createDirCacheEntries(new String[] { "b", "c" });
+		final DirCacheTree root = new DirCacheTree();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 0, 2, false);
+
+		ents = createDirCacheEntries(new String[] { "a/x", "b", "c" });
+		root.invalidateAll();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 1, 3, false);
+		assertData(root.getChild(0), "a", "a/", 0, 1, false);
+	}
+
+	@Test
+	public void testAddSubtreeAtMid() {
+		DirCacheEntry[] ents = createDirCacheEntries(new String[] { "a", "c" });
+		final DirCacheTree root = new DirCacheTree();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 0, 2, false);
+
+		ents = createDirCacheEntries(new String[] { "a", "b/x", "c" });
+		root.invalidateAll();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 1, 3, false);
+		assertData(root.getChild(0), "b", "b/", 0, 1, false);
+	}
+
+	@Test
+	public void testAddSubtreeAtEnd() {
+		DirCacheEntry[] ents = createDirCacheEntries(new String[] { "a", "b" });
+		final DirCacheTree root = new DirCacheTree();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 0, 2, false);
+
+		ents = createDirCacheEntries(new String[] { "a", "b", "c/x" });
+		root.invalidateAll();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 1, 3, false);
+		assertData(root.getChild(0), "c", "c/", 0, 1, false);
+	}
+
+	@Test
+	public void testRemoveObsoleteSubtreeAtStart() {
+		DirCacheEntry[] ents = createDirCacheEntries(
+				new String[] { "a/x", "b", "c" });
+		final DirCacheTree root = new DirCacheTree();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 1, 3, false);
+		assertData(root.getChild(0), "a", "a/", 0, 1, false);
+
+		ents = createDirCacheEntries(new String[] { "b", "c" });
+		root.invalidateAll();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 0, 2, false);
+	}
+
+	@Test
+	public void testRemoveObsoleteSubtreeAtMid() {
+		DirCacheEntry[] ents = createDirCacheEntries(
+				new String[] { "a", "b/x", "c" });
+		final DirCacheTree root = new DirCacheTree();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 1, 3, false);
+		assertData(root.getChild(0), "b", "b/", 0, 1, false);
+
+		ents = createDirCacheEntries(new String[] { "a", "c" });
+		root.invalidateAll();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 0, 2, false);
+	}
+
+	@Test
+	public void testRemoveObsoleteSubtreeAtEnd() {
+		DirCacheEntry[] ents = createDirCacheEntries(
+				new String[] { "a", "b", "c/x" });
+		final DirCacheTree root = new DirCacheTree();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 1, 3, false);
+		assertData(root.getChild(0), "c", "c/", 0, 1, false);
+
+		ents = createDirCacheEntries(new String[] { "a", "b" });
+		root.invalidateAll();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 0, 2, false);
+	}
+
+	@Test
+	public void testRemoveObsoleteSubtrees() {
+		DirCacheEntry[] ents = createDirCacheEntries(
+				new String[] { "a", "b/x", "b/y", "c", "d/z", "e" });
+		final DirCacheTree root = new DirCacheTree();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 2, 6, false);
+		assertData(root.getChild(0), "b", "b/", 0, 2, false);
+		assertData(root.getChild(1), "d", "d/", 0, 1, false);
+
+		ents = createDirCacheEntries(new String[] { "a", "c", "e" });
+		root.invalidateAll();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 0, 3, false);
+	}
+
+	@Test
+	public void testAddAndRemoveObsoleteSubtreesTwoLevel() {
+		DirCacheEntry[] ents = createDirCacheEntries(
+				new String[] { "a", "b/m", "b/n/x", "c/o/y", "d/s/z", "e" });
+		final DirCacheTree root = new DirCacheTree();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 3, 6, false);
+
+		DirCacheTree b = root.getChild(0);
+		assertData(b, "b", "b/", 1, 2, false);
+		assertData(b.getChild(0), "n", "b/n/", 0, 1, false);
+
+		final DirCacheTree c = root.getChild(1);
+		assertData(c, "c", "c/", 1, 1, false);
+		assertData(c.getChild(0), "o", "c/o/", 0, 1, false);
+
+		DirCacheTree d = root.getChild(2);
+		assertData(d, "d", "d/", 1, 1, false);
+		assertData(d.getChild(0), "s", "d/s/", 0, 1, false);
+
+		ents = createDirCacheEntries(
+				new String[] { "a", "b/m", "b/n0/x", "d/r/z", "d/s/z", "e" });
+		root.invalidateAll();
+		root.validate(ents, ents.length, 0, 0);
+		assertData(root, "", "", 2, 6, false);
+
+		b = root.getChild(0);
+		assertData(b, "b", "b/", 1, 2, false);
+		assertData(b.getChild(0), "n0", "b/n0/", 0, 1, false);
+
+		d = root.getChild(1);
+		assertData(d, "d", "d/", 2, 2, false);
+		assertData(d.getChild(0), "r", "d/r/", 0, 1, false);
+		assertData(d.getChild(1), "s", "d/s/", 0, 1, false);
+	}
+
 	/**
 	 * We had bugs related to buffer size in the DirCache. This test creates an
 	 * index larger than the default BufferedInputStream buffer size. This made
