@@ -47,7 +47,9 @@ import static java.nio.charset.StandardCharsets.UTF_8;
 import static org.eclipse.jgit.junit.Assert.assertEquals;
 import static org.junit.Assert.assertArrayEquals;
 import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertFalse;
 import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertTrue;
 import static org.junit.Assert.fail;
 
@@ -55,6 +57,7 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -219,6 +222,36 @@ public class DirCacheCGitCompatabilityTest extends LocalDiskRepositoryTestCase {
 		final byte[] indexBytes = bos.toByteArray();
 		final byte[] expectedBytes = IO.readFully(file);
 		assertArrayEquals(expectedBytes, indexBytes);
+	}
+
+	@Test
+	public void testFileWithSameNameAsSubtree() throws Exception {
+		// CGit is able to read this cache tree and write this cache tree. It
+		// would even be able to "update" this cache tree (=determining the
+		// number of elements per tree, i.e. what we are doing in
+		// DirCacheTree.validate) if certain checks were removed. Overall
+		// it can deal with such trees, so we should be able to.
+		final File file = pathOf("dircache.fileWithSameNameAsSubtree");
+		DirCache dc = new DirCache(file, FS.DETECTED);
+		dc.read();
+
+		final DirCacheTree cacheTree = dc.getCacheTree(true);
+		assertNotNull(cacheTree);
+		assertEquals("", cacheTree.getNameString());
+		assertEquals("", cacheTree.getPathString());
+		assertFalse(cacheTree.isValid());
+		assertNull(null, cacheTree.getObjectId());
+		assertEquals(3, cacheTree.getEntrySpan());
+		assertEquals(1, cacheTree.getChildCount());
+
+		final DirCacheTree childTree = cacheTree.getChild(0);
+		assertNotNull(childTree);
+		assertEquals("a", childTree.getNameString());
+		assertEquals("a/", childTree.getPathString());
+		assertFalse(childTree.isValid());
+		assertNull(null, childTree.getObjectId());
+		assertEquals(1, childTree.getEntrySpan());
+		assertEquals(0, childTree.getChildCount());
 	}
 
 	private static void assertV3TreeEntry(int indexPosition, String path,

@@ -463,6 +463,16 @@ public class DirCacheTree {
 				break;
 			}
 
+			final int p = slash(currPath, pathOff);
+			if (p < 0) {
+				// The entry has no '/' and thus is directly in this
+				// tree. Count it as one of our own.
+				//
+				cIdx++;
+				entrySpan++;
+				continue;
+			}
+
 			DirCacheTree st = stIdx < childCnt ? children[stIdx] : null;
 			final int cc = namecmp(currPath, pathOff, st);
 			if (cc > 0) {
@@ -473,16 +483,6 @@ public class DirCacheTree {
 			}
 
 			if (cc < 0) {
-				final int p = slash(currPath, pathOff);
-				if (p < 0) {
-					// The entry has no '/' and thus is directly in this
-					// tree. Count it as one of our own.
-					//
-					cIdx++;
-					entrySpan++;
-					continue;
-				}
-
 				// Build a new subtree for this entry.
 				//
 				st = new DirCacheTree(this, currPath, pathOff, p - pathOff);
