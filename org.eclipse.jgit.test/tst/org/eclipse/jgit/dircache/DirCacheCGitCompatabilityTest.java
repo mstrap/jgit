@@ -57,7 +57,6 @@ import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileOutputStream;
 import java.io.InputStreamReader;
 import java.util.ArrayList;
 import java.util.Iterator;
@@ -65,6 +64,7 @@ import java.util.LinkedHashMap;
 import java.util.Map;
 
 import org.eclipse.jgit.errors.CorruptObjectException;
+import org.eclipse.jgit.errors.UnmergedPathException;
 import org.eclipse.jgit.junit.JGitTestUtil;
 import org.eclipse.jgit.junit.LocalDiskRepositoryTestCase;
 import org.eclipse.jgit.lib.FileMode;
@@ -172,7 +172,7 @@ public class DirCacheCGitCompatabilityTest extends LocalDiskRepositoryTestCase {
 		dc.read();
 		assertEquals(cList.size(), dc.getEntryCount());
 
-		final DirCacheTree jTree = dc.getCacheTree(false);
+		final DirCacheTree jTree = dc.getCacheTreeUpdated();
 		assertNotNull(jTree);
 		assertEquals("", jTree.getNameString());
 		assertEquals("", jTree.getPathString());
@@ -226,16 +226,21 @@ public class DirCacheCGitCompatabilityTest extends LocalDiskRepositoryTestCase {
 
 	@Test
 	public void testFileWithSameNameAsSubtree() throws Exception {
-		// CGit is able to read this cache tree and write this cache tree. It
-		// would even be able to "update" this cache tree (=determining the
-		// number of elements per tree, i.e. what we are doing in
-		// DirCacheTree.validate) if certain checks were removed. Overall
-		// it can deal with such trees, so we should be able to.
+		// CGit is able to read this cache tree and write this cache tree.
+		// It refuses to update this cache tree because of unmerged paths.
 		final File file = pathOf("dircache.fileWithSameNameAsSubtree");
 		DirCache dc = new DirCache(file, FS.DETECTED);
 		dc.read();
 
-		final DirCacheTree cacheTree = dc.getCacheTree(true);
+		DirCacheTree cacheTree;
+		try {
+			dc.getCacheTreeUpdated();
+			fail();
+		} catch (UnmergedPathException e) {
+			// expected
+		}
+
+		cacheTree = dc.createTemporaryCacheTree();
 		assertNotNull(cacheTree);
 		assertEquals("", cacheTree.getNameString());
 		assertEquals("", cacheTree.getPathString());
@@ -252,6 +257,14 @@ public class DirCacheCGitCompatabilityTest extends LocalDiskRepositoryTestCase {
 		assertNull(null, childTree.getObjectId());
 		assertEquals(1, childTree.getEntrySpan());
 		assertEquals(0, childTree.getChildCount());
+
+		// assert that cache tree which couldn't be updated is preserved as is
+		// when writing the cache file
+		final ByteArrayOutputStream bos = new ByteArrayOutputStream();
+		dc.writeTo(null, bos);
+		final byte[] indexBytes = bos.toByteArray();
+		final byte[] expectedBytes = IO.readFully(file);
+		assertArrayEquals(expectedBytes, indexBytes);
 	}
 
 	private static void assertV3TreeEntry(int indexPosition, String path,

@@ -559,17 +559,19 @@ public class DirCacheTree {
 	private static int namecmp(byte[] a, int aPos, DirCacheTree ct) {
 		if (ct == null)
 			return -1;
-		final byte[] b = ct.encodedName;
+		return namecmp(a, aPos, ct.encodedName, 0);
+	}
+
+	static int namecmp(byte[] a, int aPos, byte[] b, int bPos) {
 		final int aLen = a.length;
 		final int bLen = b.length;
-		int bPos = 0;
 		for (; aPos < aLen && bPos < bLen; aPos++, bPos++) {
 			final int cmp = (a[aPos] & 0xff) - (b[bPos] & 0xff);
 			if (cmp != 0)
 				return cmp;
 		}
 		if (bPos == bLen)
-			return a[aPos] == '/' ? 0 : -1;
+			return aPos < a.length && a[aPos] == '/' ? 0 : -1;
 		return aLen - bLen;
 	}
 

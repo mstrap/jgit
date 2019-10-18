@@ -53,6 +53,7 @@ import java.util.Collections;
 import org.eclipse.jgit.attributes.AttributesNode;
 import org.eclipse.jgit.attributes.AttributesRule;
 import org.eclipse.jgit.errors.IncorrectObjectTypeException;
+import org.eclipse.jgit.errors.UnmergedPathException;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.FileMode;
 import org.eclipse.jgit.lib.ObjectId;
@@ -118,7 +119,13 @@ public class DirCacheIterator extends AbstractTreeIterator {
 	 */
 	public DirCacheIterator(DirCache dc) {
 		cache = dc;
-		tree = dc.getCacheTree(true);
+		DirCacheTree aTree;
+		try {
+			aTree = dc.getCacheTreeUpdated();
+		} catch (UnmergedPathException e) {
+			aTree = dc.createTemporaryCacheTree();
+		}
+		tree = aTree;
 		treeStart = 0;
 		treeEnd = tree.getEntrySpan();
 		subtreeId = new byte[Constants.OBJECT_ID_LENGTH];

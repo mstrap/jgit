@@ -48,10 +48,12 @@ import static org.junit.Assert.assertNotNull;
 import static org.junit.Assert.assertNotSame;
 import static org.junit.Assert.assertNull;
 import static org.junit.Assert.assertSame;
+import static org.junit.Assert.fail;
 
 import java.io.IOException;
 
 import org.eclipse.jgit.errors.CorruptObjectException;
+import org.eclipse.jgit.errors.UnmergedPathException;
 import org.eclipse.jgit.junit.RepositoryTestCase;
 import org.eclipse.jgit.lib.FileMode;
 import org.junit.Test;
@@ -60,7 +62,7 @@ public class DirCacheTreeTest extends RepositoryTestCase {
 	@Test
 	public void testEmptyCache_NoCacheTree() throws Exception {
 		final DirCache dc = db.readDirCache();
-		assertNull(dc.getCacheTree(false));
+		assertNull(dc.getCacheTreeAsIs());
 	}
 
 	@Test
@@ -78,7 +80,7 @@ public class DirCacheTreeTest extends RepositoryTestCase {
 		final DirCache dc = db.readDirCache();
 		final DirCacheTree tree = assertCacheTree(dc, true);
 		dc.clear();
-		assertNull(dc.getCacheTree(false));
+		assertNull(dc.getCacheTreeAsIs());
 		assertNotSame(tree, assertCacheTree(dc, true));
 	}
 
@@ -97,7 +99,7 @@ public class DirCacheTreeTest extends RepositoryTestCase {
 		}
 		b.finish();
 
-		assertNull(dc.getCacheTree(false));
+		assertNull(dc.getCacheTreeAsIs());
 		final DirCacheTree root = assertCacheTree(dc, true);
 		assertSame(root, assertCacheTree(dc, true));
 		assertData(root, "", "", 1, dc.getEntryCount(), false);
@@ -125,7 +127,7 @@ public class DirCacheTreeTest extends RepositoryTestCase {
 		}
 		b.finish();
 
-		assertNull(dc.getCacheTree(false));
+		assertNull(dc.getCacheTreeAsIs());
 		final DirCacheTree root = assertCacheTree(dc, true);
 		assertSame(root, assertCacheTree(dc, true));
 		assertData(root, "", "", 1, dc.getEntryCount(), false);
@@ -310,8 +312,47 @@ public class DirCacheTreeTest extends RepositoryTestCase {
 		assertEquals(1, assertCacheTree(dc, true).getChildCount());
 	}
 
-	private DirCacheTree assertCacheTree(DirCache cache, boolean build) {
-		final DirCacheTree tree = cache.getCacheTree(build);
+	@Test
+	public void testDirCacheTreeNotTouchedByIterator() throws IOException {
+		DirCache dc = db.lockDirCache();
+		dc.read();
+		DirCacheBuilder b = dc.builder();
+		b.add(createEntry("a", FileMode.REGULAR_FILE, DirCacheEntry.STAGE_0,
+				""));
+		b.commit();
+		assertData(dc.getCacheTreeUpdated(), "", "", 0, 1, false);
+
+		dc = db.lockDirCache();
+		b = dc.builder();
+		b.add(createEntry("a", FileMode.REGULAR_FILE, DirCacheEntry.STAGE_0,
+				""));
+		b.add(createEntry("dir/sub/b", FileMode.REGULAR_FILE,
+				DirCacheEntry.STAGE_1, ""));
+		b.add(createEntry("dir/sub/b", FileMode.REGULAR_FILE,
+				DirCacheEntry.STAGE_2, ""));
+		b.commit();
+
+		dc = db.lockDirCache();
+		try {
+			dc.getCacheTreeUpdated();
+			fail();
+		} catch (UnmergedPathException ex) {
+			// expected
+		}
+		assertData(dc.createTemporaryCacheTree(), "", "", 1, 3, false);
+		dc.write();
+		dc.commit();
+
+		dc = DirCache.read(db);
+		// before this commit, an obsolete cache tree with a single child
+		// subtree for dir/sub would have been reported
+		assertNull(dc.getCacheTreeAsIs());
+	}
+
+	private DirCacheTree assertCacheTree(DirCache cache, boolean build)
+			throws UnmergedPathException {
+		final DirCacheTree tree = build ? cache.getCacheTreeUpdated()
+				: cache.getCacheTreeAsIs();
 		assertNotNull(tree);
 		return tree;
 	}
@@ -319,8 +360,7 @@ public class DirCacheTreeTest extends RepositoryTestCase {
 	private DirCacheEntry[] createDirCacheEntries(String[] paths) {
 		final DirCacheEntry[] ents = new DirCacheEntry[paths.length];
 		for (int i = 0; i < paths.length; i++) {
-			ents[i] = new DirCacheEntry(paths[i]);
-			ents[i].setFileMode(FileMode.REGULAR_FILE);
+			ents[i] = createEntry(paths[i], FileMode.REGULAR_FILE);
 		}
 		return ents;
 	}

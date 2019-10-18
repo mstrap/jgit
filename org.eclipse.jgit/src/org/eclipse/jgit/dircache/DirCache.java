@@ -916,23 +916,79 @@ public class DirCache {
 	}
 
 	/**
-	 * Obtain (or build) the current cache tree structure.
-	 * <p>
-	 * This method can optionally recreate the cache tree, without flushing the
-	 * tree objects themselves to disk.
+	 * Obtain the current cache tree structure which is ensured to be up-to-date
+	 * with the current cache entries. There are certain caches states for which
+	 * this is not possible (which are defined by CGit):
 	 *
-	 * @param build
-	 *            if true and the cache tree is not present in the index it will
-	 *            be generated and returned to the caller.
-	 * @return the cache tree; null if there is no current cache tree available
-	 *         and <code>build</code> was false.
+	 * CGit will not update cache trees if there are unmerged entries or if
+	 * there is an entry for which there is an equally named subtree.
+	 *
+	 * For such states, there is no valid cache tree and thus an Exception will
+	 * be thrown. The internal state of the cache tree will remain in the last
+	 * known valid (but not up-to-date) state. This ensures that whenever the
+	 * cache is written to disk, it's in a state which is also valid from CGit
+	 * perspective.
+	 *
+	 * When an updated but invalid cache tree is still needed,
+	 * createTemporaryCacheTree() can be used.
+	 *
+	 * @throws org.eclipse.jgit.errors.UnmergedPathException
+	 *             the cache tree could not be updated.
+	 * @return the cache tree; null if the current cache tree could not be
+	 *         updated due to an invalid entries state
 	 */
-	public DirCacheTree getCacheTree(boolean build) {
-		if (build) {
-			if (tree == null)
-				tree = new DirCacheTree();
-			tree.validate(sortedEntries, entryCnt, 0, 0);
+	public DirCacheTree getCacheTreeUpdated() throws UnmergedPathException {
+		// CGit will not update cache tree if there is an unmerged entry
+		for (int i = 0; i < entryCnt; i++) {
+			DirCacheEntry entry = sortedEntries[i];
+			if (!entry.isMerged()) {
+				throw new UnmergedPathException(entry);
+			}
 		}
+
+		// CGit will not update the cache tree if there is an entry for
+		// which one of it's parent directories equals the path of another
+		// entry
+		for (int i = 0; i < entryCnt - 1; i++) {
+			DirCacheEntry entry = sortedEntries[i];
+			DirCacheEntry next = sortedEntries[i];
+			if (DirCacheTree.namecmp(next.path, 0, entry.path, 0) == 0) {
+				throw new UnmergedPathException(entry);
+			}
+		}
+
+		if (tree == null) {
+			tree = new DirCacheTree();
+		}
+
+		tree.validate(sortedEntries, entryCnt, 0, 0);
+		return tree;
+	}
+
+	/**
+	 * Obtain the current cache tree structure as is. The cache tree may not
+	 * exist yet or it may not be up-to-date. If it exists, it will be valid.
+	 *
+	 * @return the cache tree; maybe null
+	 * @see #getCacheTreeUpdated()
+	 */
+	public DirCacheTree getCacheTreeAsIs() {
+		return tree;
+	}
+
+	/**
+	 * Create a new cache tree structure which is up-to-date, but may not be a
+	 * valid cache tree (see getCacheTreeUpdated). This method may be use by
+	 * JGit internal code for which the cache tree structure is required as some
+	 * kind of smart data structure, regardless whether it represents a valid
+	 * cache tree (from CGit's perspective) or not.
+	 *
+	 * @return the cache tree; never null
+	 * @see #getCacheTreeUpdated()
+	 */
+	public DirCacheTree createTemporaryCacheTree() {
+		final DirCacheTree tree = new DirCacheTree();
+		tree.validate(sortedEntries, entryCnt, 0, 0);
 		return tree;
 	}
 
@@ -955,7 +1011,7 @@ public class DirCache {
 	 */
 	public ObjectId writeTree(ObjectInserter ow)
 			throws UnmergedPathException, IOException {
-		return getCacheTree(true).writeTree(sortedEntries, 0, 0, ow);
+		return getCacheTreeUpdated().writeTree(sortedEntries, 0, 0, ow);
 	}
 
 	/**

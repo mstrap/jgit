@@ -61,7 +61,7 @@ class MakeCacheTree extends TextBuiltin {
 	@Override
 	protected void run() throws Exception {
 		final DirCache cache = db.readDirCache();
-		final DirCacheTree tree = cache.getCacheTree(true);
+		final DirCacheTree tree = cache.getCacheTreeUpdated();
 		show(tree);
 	}
 
