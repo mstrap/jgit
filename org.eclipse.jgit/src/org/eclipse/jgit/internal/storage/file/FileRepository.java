@@ -526,7 +526,7 @@ public class FileRepository extends Repository {
 		if (ref == null) {
 			return null;
 		}
-		return new ReflogReaderImpl(this, ref.getName());
+		return new ReflogReaderImpl(this.getDirectory(), ref.getName());
 	}
 
 	/** {@inheritDoc} */

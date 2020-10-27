@@ -20,7 +20,6 @@ import java.util.List;
 import org.eclipse.jgit.lib.Constants;
 import org.eclipse.jgit.lib.ReflogEntry;
 import org.eclipse.jgit.lib.ReflogReader;
-import org.eclipse.jgit.lib.Repository;
 import org.eclipse.jgit.util.IO;
 import org.eclipse.jgit.util.RawParseUtils;
 
@@ -31,11 +30,11 @@ class ReflogReaderImpl implements ReflogReader {
 	private File logName;
 
 	/**
-	 * @param repo
+	 * @param baseDir
 	 * @param refname
 	 */
-	ReflogReaderImpl(Repository repo, String refname) {
-		logName = new File(repo.getDirectory(), Constants.L_LOGS + refname);
+	ReflogReaderImpl(File baseDir, String refname) {
+		logName = new File(baseDir, Constants.L_LOGS + refname);
 	}
 
 	/* (non-Javadoc)

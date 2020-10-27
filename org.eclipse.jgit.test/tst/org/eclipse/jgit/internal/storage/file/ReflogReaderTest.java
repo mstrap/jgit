@@ -65,7 +65,7 @@ public class ReflogReaderTest extends SampleDataRepositoryTestCase {
 	public void testReadOneLine() throws Exception {
 		setupReflog("logs/refs/heads/master", oneLine);
 
-		ReflogReader reader = new ReflogReaderImpl(db, "refs/heads/master");
+		ReflogReader reader = new ReflogReaderImpl(db.getDirectory(), "refs/heads/master");
 		ReflogEntry e = reader.getLastEntry();
 		assertEquals(ObjectId
 				.fromString("da85355dfc525c9f6f3927b876f379f46ccf826e"), e
@@ -92,7 +92,7 @@ public class ReflogReaderTest extends SampleDataRepositoryTestCase {
 	public void testReadTwoLine() throws Exception {
 		setupReflog("logs/refs/heads/master", twoLine);
 
-		ReflogReader reader = new ReflogReaderImpl(db, "refs/heads/master");
+		ReflogReader reader = new ReflogReaderImpl(db.getDirectory(), "refs/heads/master");
 		List<ReflogEntry> reverseEntries = reader.getReverseEntries();
 		assertEquals(2, reverseEntries.size());
 		ReflogEntry e = reverseEntries.get(0);
@@ -127,7 +127,7 @@ public class ReflogReaderTest extends SampleDataRepositoryTestCase {
 	@Test
 	public void testReadWhileAppendIsInProgress() throws Exception {
 		setupReflog("logs/refs/heads/master", twoLineWithAppendInProgress);
-		ReflogReader reader = new ReflogReaderImpl(db, "refs/heads/master");
+		ReflogReader reader = new ReflogReaderImpl(db.getDirectory(), "refs/heads/master");
 		List<ReflogEntry> reverseEntries = reader.getReverseEntries();
 		assertEquals(2, reverseEntries.size());
 		ReflogEntry e = reverseEntries.get(0);
@@ -204,7 +204,7 @@ public class ReflogReaderTest extends SampleDataRepositoryTestCase {
 	public void testSpecificEntryNumber() throws Exception {
 		setupReflog("logs/refs/heads/master", twoLine);
 
-		ReflogReader reader = new ReflogReaderImpl(db, "refs/heads/master");
+		ReflogReader reader = new ReflogReaderImpl(db.getDirectory(), "refs/heads/master");
 		ReflogEntry e = reader.getReverseEntry(0);
 		assertEquals(
 				ObjectId.fromString("c6734895958052a9dbc396cff4459dc1a25029ab"),
