@@ -628,6 +628,6 @@ public class FileReftableDatabase extends RefDatabase {
 	}
 
 	private static File createRefTableDir(FileRepository repo) {
-		return new File(repo.getDirectory(), Constants.REFTABLE);
+		return new File(repo.getCommonDirectory(), Constants.REFTABLE);
 	}
 }

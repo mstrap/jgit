@@ -182,7 +182,7 @@ public class RefDirectory extends RefDatabase {
 	RefDirectory(FileRepository repo) {
 		final FS fs = repo.getFS();
 		parent = repo;
-		gitDir = repo.getDirectory();
+		gitDir = repo.getCommonDirectory();
 		refsDir = fs.resolve(gitDir, REFS);
 		logsDir = fs.resolve(gitDir, LOGS);
 		logsRefsDir = fs.resolve(gitDir, LOGS_REFS);
