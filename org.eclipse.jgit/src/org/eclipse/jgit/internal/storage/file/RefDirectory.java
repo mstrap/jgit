@@ -182,11 +182,12 @@ public class RefDirectory extends RefDatabase {
 	RefDirectory(FileRepository repo) {
 		final FS fs = repo.getFS();
 		parent = repo;
-		gitDir = repo.getCommonDirectory();
-		refsDir = fs.resolve(gitDir, REFS);
-		logsDir = fs.resolve(gitDir, LOGS);
-		logsRefsDir = fs.resolve(gitDir, LOGS_REFS);
-		packedRefsFile = fs.resolve(gitDir, PACKED_REFS);
+		gitDir = repo.getDirectory();
+		File gitCommonDir = repo.getCommonDirectory();
+		refsDir = fs.resolve(gitCommonDir, REFS);
+		logsDir = fs.resolve(gitCommonDir, LOGS);
+		logsRefsDir = fs.resolve(gitCommonDir, LOGS_REFS);
+		packedRefsFile = fs.resolve(gitCommonDir, PACKED_REFS);
 
 		looseRefs.set(RefList.<LooseRef> emptyList());
 		packedRefs.set(NO_PACKED_REFS);
