@@ -227,23 +227,24 @@ public class FileRepository extends Repository {
 	@Override
 	public void create(boolean bare) throws IOException {
 		final FileBasedConfig cfg = getConfig();
+		final File baseDir = getDirectory();
 		if (cfg.getFile().exists()) {
 			throw new IllegalStateException(MessageFormat.format(
-					JGitText.get().repositoryAlreadyExists, getDirectory()));
+					JGitText.get().repositoryAlreadyExists, baseDir));
 		}
-		FileUtils.mkdirs(getDirectory(), true);
+		FileUtils.mkdirs(baseDir, true);
 		HideDotFiles hideDotFiles = getConfig().getEnum(
 				ConfigConstants.CONFIG_CORE_SECTION, null,
 				ConfigConstants.CONFIG_KEY_HIDEDOTFILES,
 				HideDotFiles.DOTGITONLY);
 		if (hideDotFiles != HideDotFiles.FALSE && !isBare()
-				&& getDirectory().getName().startsWith(".")) //$NON-NLS-1$
-			getFS().setHidden(getDirectory(), true);
+				&& baseDir.getName().startsWith(".")) //$NON-NLS-1$
+			getFS().setHidden(baseDir, true);
 		refs.create();
 		objectDatabase.create();
 
-		FileUtils.mkdir(new File(getDirectory(), Constants.BRANCHES));
-		FileUtils.mkdir(new File(getDirectory(), Constants.HOOKS));
+		FileUtils.mkdir(new File(baseDir, Constants.BRANCHES));
+		FileUtils.mkdir(new File(baseDir, Constants.HOOKS));
 
 		RefUpdate head = updateRef(Constants.HEAD);
 		head.disableRefLog();
@@ -251,7 +252,7 @@ public class FileRepository extends Repository {
 
 		final boolean fileMode;
 		if (getFS().supportsExecute()) {
-			File tmp = File.createTempFile("try", "execute", getDirectory()); //$NON-NLS-1$ //$NON-NLS-2$
+			File tmp = File.createTempFile("try", "execute", baseDir); //$NON-NLS-1$ //$NON-NLS-2$
 
 			getFS().setExecute(tmp, true);
 			final boolean on = getFS().canExecute(tmp);
@@ -267,7 +268,7 @@ public class FileRepository extends Repository {
 
 		SymLinks symLinks = SymLinks.FALSE;
 		if (getFS().supportsSymlinks()) {
-			File tmp = new File(getDirectory(), "tmplink"); //$NON-NLS-1$
+			File tmp = new File(baseDir, "tmplink"); //$NON-NLS-1$
 			try {
 				getFS().createSymLink(tmp, "target"); //$NON-NLS-1$
 				symLinks = null;
@@ -295,7 +296,7 @@ public class FileRepository extends Repository {
 					ConfigConstants.CONFIG_KEY_PRECOMPOSEUNICODE, true);
 		if (!bare) {
 			File workTree = getWorkTree();
-			if (!getDirectory().getParentFile().equals(workTree)) {
+			if (!baseDir.getParentFile().equals(workTree)) {
 				cfg.setString(ConfigConstants.CONFIG_CORE_SECTION, null,
 						ConfigConstants.CONFIG_KEY_WORKTREE, getWorkTree()
 								.getAbsolutePath());
@@ -304,7 +305,7 @@ public class FileRepository extends Repository {
 				try {
 					if (dotGitLockFile.lock()) {
 						dotGitLockFile.write(Constants.encode(Constants.GITDIR
-								+ getDirectory().getAbsolutePath()));
+								+ baseDir.getAbsolutePath()));
 						dotGitLockFile.commit();
 					}
 				} finally {
@@ -624,15 +625,16 @@ public class FileRepository extends Repository {
 	 */
 	void convertToPackedRefs(boolean writeLogs, boolean backup) throws IOException {
 		List<Ref> all = refs.getRefs();
-		File packedRefs = new File(getDirectory(), Constants.PACKED_REFS);
+		File baseDir = getDirectory();
+		File packedRefs = new File(baseDir, Constants.PACKED_REFS);
 		if (packedRefs.exists()) {
 			throw new IOException(MessageFormat.format(JGitText.get().fileAlreadyExists,
 				packedRefs.getName()));
 		}
 
-		File refsFile = new File(getDirectory(), Constants.REFS);
+		File refsFile = new File(baseDir, Constants.REFS);
 		File refsHeadsFile = new File(refsFile, Constants.HEADS);
-		File headFile = new File(getDirectory(), Constants.HEAD);
+		File headFile = new File(baseDir, Constants.HEAD);
 		FileReftableDatabase oldDb = (FileReftableDatabase) refs;
 
 		// Remove the dummy files that ensure compatibility with older git
@@ -700,7 +702,7 @@ public class FileRepository extends Repository {
 		}
 
 		if (!backup) {
-			File reftableDir = new File(getDirectory(), Constants.REFTABLE);
+			File reftableDir = new File(baseDir, Constants.REFTABLE);
 			FileUtils.delete(reftableDir,
 					FileUtils.RECURSIVE | FileUtils.IGNORE_ERRORS);
 		}
@@ -729,8 +731,9 @@ public class FileRepository extends Repository {
 	@SuppressWarnings("nls")
 	void convertToReftable(boolean writeLogs, boolean backup)
 			throws IOException {
-		File reftableDir = new File(getDirectory(), Constants.REFTABLE);
-		File headFile = new File(getDirectory(), Constants.HEAD);
+		File baseDir = getDirectory();
+		File reftableDir = new File(baseDir, Constants.REFTABLE);
+		File headFile = new File(baseDir, Constants.HEAD);
 		if (reftableDir.exists() && reftableDir.listFiles().length > 0) {
 			throw new IOException(JGitText.get().reftableDirExists);
 		}
@@ -738,29 +741,29 @@ public class FileRepository extends Repository {
 		// Ignore return value, as it is tied to temporary newRefs file.
 		FileReftableDatabase.convertFrom(this, writeLogs);
 
-		File refsFile = new File(getDirectory(), Constants.REFS);
+		File refsFile = new File(baseDir, Constants.REFS);
 
 		// non-atomic: remove old data.
-		File packedRefs = new File(getDirectory(), Constants.PACKED_REFS);
-		File logsDir = new File(getDirectory(), Constants.LOGS);
+		File packedRefs = new File(baseDir, Constants.PACKED_REFS);
+		File logsDir = new File(baseDir, Constants.LOGS);
 
 		List<String> additional = getRefDatabase().getAdditionalRefs().stream()
 				.map(Ref::getName).collect(toList());
 		additional.add(Constants.HEAD);
 		if (backup) {
 			FileUtils.rename(refsFile,
-					new File(getDirectory(), Constants.REFS + ".old"));
+					new File(baseDir, Constants.REFS + ".old"));
 			if (packedRefs.exists()) {
-				FileUtils.rename(packedRefs, new File(getDirectory(),
+				FileUtils.rename(packedRefs, new File(baseDir,
 						Constants.PACKED_REFS + ".old"));
 			}
 			if (logsDir.exists()) {
 				FileUtils.rename(logsDir,
-						new File(getDirectory(), Constants.LOGS + ".old"));
+						new File(baseDir, Constants.LOGS + ".old"));
 			}
 			for (String r : additional) {
-				FileUtils.rename(new File(getDirectory(), r),
-					new File(getDirectory(), r + ".old"));
+				FileUtils.rename(new File(baseDir, r),
+					new File(baseDir, r + ".old"));
 			}
 		} else {
 			FileUtils.delete(packedRefs, FileUtils.SKIP_MISSING);
@@ -768,7 +771,7 @@ public class FileRepository extends Repository {
 			FileUtils.delete(logsDir, FileUtils.RECURSIVE);
 			FileUtils.delete(refsFile, FileUtils.RECURSIVE);
 			for (String r : additional) {
-				new File(getDirectory(), r).delete();
+				new File(baseDir, r).delete();
 			}
 		}
 
