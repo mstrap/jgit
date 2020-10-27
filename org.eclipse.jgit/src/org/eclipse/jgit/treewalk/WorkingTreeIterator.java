@@ -1321,7 +1321,7 @@ public abstract class WorkingTreeIterator extends AbstractTreeIterator {
 				loadRulesFromFile(r, excludesfile);
 			}
 
-			File exclude = fs.resolve(repository.getDirectory(),
+			File exclude = fs.resolve(repository.getCommonDirectory(),
 					Constants.INFO_EXCLUDE);
 			loadRulesFromFile(r, exclude);
 
