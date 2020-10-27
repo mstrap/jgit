@@ -630,7 +630,7 @@ public class FileRepository extends Repository {
 	 */
 	void convertToPackedRefs(boolean writeLogs, boolean backup) throws IOException {
 		List<Ref> all = refs.getRefs();
-		File baseDir = getDirectory();
+		File baseDir = getCommonDirectory();
 		File packedRefs = new File(baseDir, Constants.PACKED_REFS);
 		if (packedRefs.exists()) {
 			throw new IOException(MessageFormat.format(JGitText.get().fileAlreadyExists,
@@ -639,7 +639,7 @@ public class FileRepository extends Repository {
 
 		File refsFile = new File(baseDir, Constants.REFS);
 		File refsHeadsFile = new File(refsFile, Constants.HEADS);
-		File headFile = new File(baseDir, Constants.HEAD);
+		File headFile = new File(getDirectory(), Constants.HEAD);
 		FileReftableDatabase oldDb = (FileReftableDatabase) refs;
 
 		// Remove the dummy files that ensure compatibility with older git
