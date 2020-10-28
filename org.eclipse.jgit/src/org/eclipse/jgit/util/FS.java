@@ -24,7 +24,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.io.PrintStream;
 import java.io.Writer;
-import java.nio.charset.Charset;
+import java.nio.charset.*;
 import java.nio.file.AccessDeniedException;
 import java.nio.file.FileStore;
 import java.nio.file.Files;
@@ -891,6 +891,15 @@ public abstract class FS {
 			factory = new FS.FSFactory();
 		}
 		return factory.detect(cygwinUsed);
+	}
+
+	public static File readPathFile(File pathFile, File basePath) throws IOException {
+		String path = new String(IO.readFully(pathFile), UTF_8).trim();
+		File targetFile = new File(path);
+		if (!targetFile.isAbsolute()) {
+			targetFile = new File(basePath, path).getCanonicalFile();
+		}
+		return targetFile;
 	}
 
 	/**
@@ -2498,12 +2507,7 @@ public abstract class FS {
 		// now check if commondir file exists (e.g. worktree repository)
 		File commonDirFile = new File(dir, Constants.COMMONDIR_FILE);
 		if (commonDirFile.isFile()) {
-			String commonDirPath = new String(IO.readFully(commonDirFile))
-					.trim();
-			commonDir = new File(commonDirPath);
-			if (!commonDir.isAbsolute()) {
-				commonDir = new File(dir, commonDirPath).getCanonicalFile();
-			}
+			commonDir = readPathFile(commonDirFile, dir);
 		}
 		return commonDir;
 	}

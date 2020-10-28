@@ -739,15 +739,7 @@ public class BaseRepositoryBuilder<B extends BaseRepositoryBuilder, R extends Re
 		 */
 		File gitDirFile = new File(getGitDir(), GITDIR_FILE);
 		if (gitDirFile.isFile()) {
-			String workDirPath = new String(IO.readFully(gitDirFile)).trim();
-			File workTreeDotGitFile = new File(workDirPath);
-			if (!workTreeDotGitFile.isAbsolute()) {
-				workTreeDotGitFile = new File(getGitDir(), workDirPath)
-						.getCanonicalFile();
-			}
-			if (workTreeDotGitFile != null) {
-				return workTreeDotGitFile.getParentFile();
-			}
+			return FS.readPathFile(gitDirFile, getGitDir());
 		}
 
 		// If core.bare is set, honor its value. Assume workTree is
