@@ -291,6 +291,10 @@ public final class Constants {
 	/** Prefix for remotes refs */
 	public static final String R_REMOTES = R_REFS + "remotes" + FILE_SEPARATOR;
 
+	public static final String R_WORKTREE = R_REFS + "worktree" + FILE_SEPARATOR;
+	public static final String R_BISECT = R_REFS + "bisect" + FILE_SEPARATOR;
+	public static final String R_REWRITTEN = R_REFS + "rewritten" + FILE_SEPARATOR;
+
 	/**
 	 * Name of tags folder or file in refs.
 	 *

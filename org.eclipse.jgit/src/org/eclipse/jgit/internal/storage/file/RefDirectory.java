@@ -20,9 +20,12 @@ import static org.eclipse.jgit.lib.Constants.LOGS_REFS;
 import static org.eclipse.jgit.lib.Constants.OBJECT_ID_STRING_LENGTH;
 import static org.eclipse.jgit.lib.Constants.PACKED_REFS;
 import static org.eclipse.jgit.lib.Constants.REFS;
+import static org.eclipse.jgit.lib.Constants.R_BISECT;
 import static org.eclipse.jgit.lib.Constants.R_HEADS;
 import static org.eclipse.jgit.lib.Constants.R_REFS;
+import static org.eclipse.jgit.lib.Constants.R_REWRITTEN;
 import static org.eclipse.jgit.lib.Constants.R_TAGS;
+import static org.eclipse.jgit.lib.Constants.R_WORKTREE;
 import static org.eclipse.jgit.lib.Ref.Storage.LOOSE;
 import static org.eclipse.jgit.lib.Ref.Storage.NEW;
 import static org.eclipse.jgit.lib.Ref.Storage.PACKED;
@@ -124,6 +127,8 @@ public class RefDirectory extends RefDatabase {
 
 	private final File gitDir;
 
+	final File refsBase;
+
 	final File refsDir;
 
 	final File packedRefsFile;
@@ -184,6 +189,7 @@ public class RefDirectory extends RefDatabase {
 		parent = repo;
 		gitDir = repo.getDirectory();
 		File gitCommonDir = repo.getCommonDirectory();
+		refsBase = gitCommonDir;
 		refsDir = fs.resolve(gitCommonDir, REFS);
 		logsDir = fs.resolve(gitCommonDir, LOGS);
 		logsRefsDir = fs.resolve(gitCommonDir, LOGS_REFS);
@@ -220,9 +226,9 @@ public class RefDirectory extends RefDatabase {
 	/** {@inheritDoc} */
 	@Override
 	public void create() throws IOException {
-		FileUtils.mkdir(refsDir);
-		FileUtils.mkdir(new File(refsDir, R_HEADS.substring(R_REFS.length())));
-		FileUtils.mkdir(new File(refsDir, R_TAGS.substring(R_REFS.length())));
+		FileUtils.mkdir(new File(refsBase, R_REFS));
+		FileUtils.mkdir(new File(refsBase, R_HEADS));
+		FileUtils.mkdir(new File(refsBase, R_TAGS));
 		newLogWriter(false).create();
 	}
 
@@ -432,6 +438,11 @@ public class RefDirectory extends RefDatabase {
 			if (ALL.equals(prefix)) {
 				scanOne(HEAD);
 				scanTree(R_REFS, refsDir);
+				if (!gitDir.equals(refsBase)) {
+					scanTree(R_WORKTREE, new File(gitDir, R_WORKTREE));
+					scanTree(R_BISECT, new File(gitDir, R_BISECT));
+					scanTree(R_REWRITTEN, new File(gitDir, R_REWRITTEN));
+				}
 
 				// If any entries remain, they are deleted, drop them.
 				if (newLoose == null && curIdx < curLoose.size())
@@ -439,7 +450,8 @@ public class RefDirectory extends RefDatabase {
 
 			} else if (prefix.startsWith(R_REFS) && prefix.endsWith("/")) { //$NON-NLS-1$
 				curIdx = -(curLoose.find(prefix) + 1);
-				File dir = new File(refsDir, prefix.substring(R_REFS.length()));
+
+				File dir = new File(getRefsBase(prefix), prefix);
 				scanTree(prefix, dir);
 
 				// Skip over entries still within the prefix; these have
@@ -1248,11 +1260,17 @@ public class RefDirectory extends RefDatabase {
 	 * @return the loose file location.
 	 */
 	File fileFor(String name) {
-		if (name.startsWith(R_REFS)) {
-			name = name.substring(R_REFS.length());
-			return new File(refsDir, name);
+		return new File(getRefsBase(name), name);
+	}
+
+	private File getRefsBase(String name) {
+		if (name.startsWith(R_WORKTREE) || name.startsWith(R_BISECT) || name.startsWith(R_REWRITTEN)) {
+			return gitDir;
 		}
-		return new File(gitDir, name);
+		else if (name.startsWith(R_REFS)) {
+			return refsBase;
+		}
+		return gitDir;
 	}
 
 	static int levelsIn(String name) {
